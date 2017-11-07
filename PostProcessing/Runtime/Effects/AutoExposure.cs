@@ -50,8 +50,6 @@ namespace UnityEngine.Rendering.PostProcessing
         int m_AutoExposurePingPong;
         RenderTexture m_CurrentAutoExposure;
 
-        bool m_FirstFrame = true;
-
         void CheckTexture(int id)
         {
             if (m_AutoExposurePool[id] == null || !m_AutoExposurePool[id].IsCreated())
@@ -80,6 +78,12 @@ namespace UnityEngine.Rendering.PostProcessing
             highPercent = Mathf.Clamp(highPercent, 1f + kMinDelta, 99f);
             lowPercent = Mathf.Clamp(lowPercent, 1f, highPercent - kMinDelta);
 
+            // Clamp min/max adaptation values as well
+            float minLum = settings.minLuminance.value;
+            float maxLum = settings.maxLuminance.value;
+            settings.minLuminance.value = Mathf.Min(minLum, maxLum);
+            settings.maxLuminance.value = Mathf.Max(minLum, maxLum);
+
             // Compute auto exposure
             sheet.properties.SetBuffer(ShaderIDs.HistogramBuffer, context.logHistogram.data);
             sheet.properties.SetVector(ShaderIDs.Params, new Vector4(lowPercent * 0.01f, highPercent * 0.01f, RuntimeUtilities.Exp2(settings.minLuminance.value), RuntimeUtilities.Exp2(settings.maxLuminance.value)));
@@ -87,7 +91,7 @@ namespace UnityEngine.Rendering.PostProcessing
             sheet.properties.SetVector(ShaderIDs.ScaleOffsetRes, context.logHistogram.GetHistogramScaleOffsetRes(context));
             sheet.properties.SetFloat(ShaderIDs.ExposureCompensation, settings.keyValue.value);
 
-            if (m_FirstFrame || !Application.isPlaying)
+            if (m_ResetHistory || !Application.isPlaying)
             {
                 // We don't want eye adaptation when not in play mode because the GameView isn't
                 // animated, thus making it harder to tweak. Just use the final audo exposure value.
@@ -96,6 +100,8 @@ namespace UnityEngine.Rendering.PostProcessing
 
                 // Copy current exposure to the other pingpong target to avoid adapting from black
                 RuntimeUtilities.CopyTexture(cmd, m_AutoExposurePool[0], m_AutoExposurePool[1]);
+
+                m_ResetHistory = false;
             }
             else
             {
@@ -111,7 +117,6 @@ namespace UnityEngine.Rendering.PostProcessing
 
             context.autoExposureTexture = m_CurrentAutoExposure;
             context.autoExposure = settings;
-            m_FirstFrame = false;
         }
 
         public override void Release()
