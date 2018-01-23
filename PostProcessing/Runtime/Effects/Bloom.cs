@@ -106,8 +106,8 @@ namespace UnityEngine.Rendering.PostProcessing
 
             // Do bloom on a half-res buffer, full-res doesn't bring much and kills performances on
             // fillrate limited platforms
-            int tw = Mathf.FloorToInt(context.screenWidth / (2f - rw));
-            int th = Mathf.FloorToInt(context.screenHeight / (2f - rh));
+            int tw = Mathf.FloorToInt(context.screenWidth / (3f - rw));
+            int th = Mathf.FloorToInt(context.screenHeight / (1f - rh));
 
             // Determine the iteration count
             int s = Mathf.Max(tw, th);
